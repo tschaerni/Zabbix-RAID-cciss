@@ -3,7 +3,8 @@ use strict;
 use JSON;
 
 use constant use_cciss   => 0;
-use constant use_sg   => 1;
+use constant use_sg   => 0;
+use constant use_hpsa   => 1;
 my $lsmod =             "/bin/lsmod";
 my $cciss_vol_status =  "/usr/bin/cciss_vol_status -u";
 
@@ -64,6 +65,32 @@ if ( use_sg == 1 ) {
             '{#CONTROLLER}'     => 'ERRORR_module',
             '{#DEVICE}'         => 'ERRORR Kernel module sg is not loaded',
             '{#VOLUME}'         => 'ERRORR Kernel module sg is not loaded'        
+        };
+        push( @$data, $entry );
+    } elsif ( -d "/dev" && -r "/dev" ) {
+    # Search for devices    
+        opendir(DIR, "/dev");
+        foreach my $dev (readdir(DIR)) {
+            push( @controllers, "/dev/$dev" ) if( $dev =~ /^sg\d+/ );
+        }
+        closedir(DIR);
+    } else {
+        $entry = {
+            '{#CONTROLLER}'     => 'ERRORR_device',
+            '{#DEVICE}'         => 'ERRORR Dir /dev does not exist or not readable',
+            '{#VOLUME}'         => 'ERRORR Dir /dev does not exist or not readable'
+        };
+        push( @$data, $entry );
+    }
+
+}
+
+if ( use_hpsa == 1 ) {
+    if ( $modules !~ /\nhpsa\s/ ) {
+        $entry = {
+            '{#CONTROLLER}'     => 'ERRORR_module',
+            '{#DEVICE}'         => 'ERRORR Kernel module hpsa is not loaded',
+            '{#VOLUME}'         => 'ERRORR Kernel module hpsa is not loaded'        
         };
         push( @$data, $entry );
     } elsif ( -d "/dev" && -r "/dev" ) {
